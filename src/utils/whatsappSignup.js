@@ -124,6 +124,7 @@ export function launchWhatsAppSignup() {
 
         FB.login(
           (response) => {
+            console.log('META FB.login RESPONSE:', response)
             if (response.authResponse?.code) {
               session.code = response.authResponse.code
               succeed()
