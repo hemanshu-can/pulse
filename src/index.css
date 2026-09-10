@@ -1,0 +1,104 @@
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: #edf1f7;
+}
+
+::selection {
+  background: rgba(201, 247, 78, 0.55);
+}
+
+/* Thin, subtle scrollbars */
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: #cfd9e6;
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #aebccf;
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+
+/* --------------------------------------------------------------- ECG mark */
+.ecg-path {
+  stroke-dasharray: 340;
+  stroke-dashoffset: 340;
+  animation: ecgDraw 1.7s cubic-bezier(0.5, 0, 0.2, 1) forwards;
+}
+@keyframes ecgDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.pulse-ring {
+  position: relative;
+}
+.pulse-ring::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(201, 247, 78, 0.7);
+  animation: pulseRing 2.8s ease-out infinite;
+}
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  70%,
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+/* -------------------------------------------------------------- entrance */
+.rise {
+  opacity: 0;
+  animation: rise 0.55s cubic-bezier(0.22, 0.85, 0.32, 1) forwards;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dot-breathe {
+  animation: breathe 2.2s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.82);
+  }
+}
