@@ -136,7 +136,7 @@ export function launchWhatsAppSignup() {
             config_id: META_CONFIG_ID,
             response_type: 'code',
             override_default_response_type: true,
-            extras: { setup: {}, featureType: '', sessionInfoVersion: '3' },
+            extras: { setup: {} },
           },
         )
       }),
