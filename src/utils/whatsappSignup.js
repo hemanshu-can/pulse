@@ -125,7 +125,18 @@ export function launchWhatsAppSignup() {
           }
           if (payload.type !== MESSAGE_TYPE) return
 
-          if (payload.event === 'FINISH') {
+          // Debug with booleans only — the event data carries ids, not secrets.
+          console.log('WA_EMBEDDED_SIGNUP event', {
+            event: payload.event,
+            hasBusinessId: Boolean(payload.data?.business_id),
+            hasWabaId: Boolean(payload.data?.waba_id),
+            hasPhoneNumberId: Boolean(payload.data?.phone_number_id),
+          })
+
+          // Success arrives as FINISH or one of FINISH_ONLY_WABA,
+          // FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING, FINISH_OBO_MIGRATION,
+          // FINISH_GRANT_ONLY_API_ACCESS — match the whole family.
+          if (typeof payload.event === 'string' && payload.event.startsWith('FINISH')) {
             session.businessId = payload.data?.business_id ?? null
             session.wabaId = payload.data?.waba_id ?? null
             session.phoneNumberId = payload.data?.phone_number_id ?? null
@@ -145,17 +156,26 @@ export function launchWhatsAppSignup() {
             const hasCode = Boolean(response?.authResponse?.code)
             const hasAccessToken = Boolean(response?.authResponse?.accessToken)
             const hasSignedRequest = Boolean(response?.authResponse?.signedRequest)
-            console.debug('WA Embedded Signup response', { hasCode, hasAccessToken, hasSignedRequest })
+            console.log('WA Embedded Signup response', { hasCode, hasAccessToken, hasSignedRequest })
 
             if (hasCode) {
               // Meta's documented source for the exchangeable code is the login
               // response (response.authResponse.code) — not signedRequest and
               // not the WA_EMBEDDED_SIGNUP message payload.
               session.code = response.authResponse.code
+              console.log('WA Embedded Signup code received', {
+                hasIdentifiers: Boolean(session.businessId && session.wabaId && session.phoneNumberId),
+              })
               maybeSucceed()
             } else {
-              // The popup closed without a code — cancelled or dismissed.
-              fail('WhatsApp connection was cancelled.')
+              // No code — distinguish a real dismissal from a login that
+              // reported connected but returned nothing exchangeable.
+              console.log('WA Embedded Signup login status', { status: response?.status })
+              fail(
+                response?.status === 'connected'
+                  ? 'WhatsApp signup did not return an authorization code.'
+                  : 'WhatsApp connection was cancelled.',
+              )
             }
           },
           {
