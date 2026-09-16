@@ -115,12 +115,14 @@ export function launchWhatsAppSignup() {
 
         // Meta posts the business / WABA / phone number ids here on completion.
         function onMessage(event) {
+          if (event.origin === window.location.origin) return
+
+          // Debug: log every cross-origin message so we can see what Meta
+          // actually posts — or whether it posts anything at all.
+          console.log('cross-origin message', { origin: event.origin, dataType: typeof event.data })
+
           if (!isFacebookOrigin(event.origin)) return
-          if (typeof event.data !== 'string') {
-            // Debug: Meta posted a non-string payload — expected a JSON string.
-            console.log('FB message dropped (non-string data)', { dataType: typeof event.data })
-            return
-          }
+          if (typeof event.data !== 'string') return
 
           let payload
           try {
@@ -128,7 +130,11 @@ export function launchWhatsAppSignup() {
           } catch {
             return
           }
-          if (payload.type !== MESSAGE_TYPE) return
+          if (payload.type !== MESSAGE_TYPE) {
+            // Debug: a Facebook message that isn't Embedded Signup.
+            console.log('FB message (other type)', { type: payload.type, event: payload.event })
+            return
+          }
 
           // Debug with booleans only — the event data carries ids, not secrets.
           console.log('WA_EMBEDDED_SIGNUP event', {
@@ -154,6 +160,10 @@ export function launchWhatsAppSignup() {
         }
 
         window.addEventListener('message', onMessage)
+
+        // Debug: app/config ids are public (VITE_ vars ship in the bundle) —
+        // confirm the deployed bundle carries the right configuration id.
+        console.log('WA Embedded Signup launch', { appId: META_APP_ID, configId: META_CONFIG_ID })
 
         FB.login(
           (response) => {
@@ -190,7 +200,7 @@ export function launchWhatsAppSignup() {
             // sessionInfoVersion is required for Meta to post the
             // WA_EMBEDDED_SIGNUP message — v2 session logging is opt-in, so
             // without it the code arrives but the ids never do.
-            extras: { setup: {}, sessionInfoVersion: '3' },
+            extras: { setup: {}, featureType: '', sessionInfoVersion: '3' },
           },
         )
       }),
