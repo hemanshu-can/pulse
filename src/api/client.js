@@ -1,12 +1,11 @@
 /**
  * Thin fetch wrapper for the PULSE API.
  *
- * In dev the frontend is served by Vite and `/api/*` is proxied to the server
- * (see vite.config.js), so the default base is relative. Point
- * `VITE_API_BASE_URL` at the deployed API for production builds.
+ * Base URL is hardcoded to the local server for now — swap for an env var
+ * (e.g. `VITE_API_BASE_URL`) when the API is deployed.
  */
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
+const API_BASE_URL = 'http://localhost:3000'
 
 /** Error carrying the HTTP status so callers can branch on it. */
 export class ApiError extends Error {
