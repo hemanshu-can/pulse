@@ -107,9 +107,6 @@ export function launchWhatsAppSignup() {
           }
           if (payload.type !== MESSAGE_TYPE) return
 
-<<<<<<< Updated upstream
-          if (payload.event === 'FINISH') {
-=======
           // Debug with booleans only — the event data carries ids, not secrets.
           console.log('WA_EMBEDDED_SIGNUP event', {
             event: payload.event,
@@ -123,7 +120,6 @@ export function launchWhatsAppSignup() {
           // FINISH_GRANT_ONLY_API_ACCESS — match the whole family.
           if (typeof payload.event === 'string' && payload.event.startsWith('FINISH')) {
             session.businessId = payload.data?.business_id ?? null
->>>>>>> Stashed changes
             session.wabaId = payload.data?.waba_id ?? null
             session.phoneNumberId = payload.data?.phone_number_id ?? null
             // The login callback carries the exchangeable code; resolve now if
@@ -140,14 +136,6 @@ export function launchWhatsAppSignup() {
 
         FB.login(
           (response) => {
-<<<<<<< Updated upstream
-            console.log('META FB.login RESPONSE:', response)
-            if (response.authResponse?.code) {
-              session.code = response.authResponse.code
-              succeed()
-            } else {
-              fail('WhatsApp connection was cancelled.')
-=======
             // Debug with booleans only — the raw response carries tokens/codes.
             const hasCode = Boolean(response?.authResponse?.code)
             const hasAccessToken = Boolean(response?.authResponse?.accessToken)
@@ -172,7 +160,6 @@ export function launchWhatsAppSignup() {
                   ? 'WhatsApp signup did not return an authorization code.'
                   : 'WhatsApp connection was cancelled.',
               )
->>>>>>> Stashed changes
             }
           },
           {
