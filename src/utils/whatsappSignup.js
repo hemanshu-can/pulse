@@ -15,9 +15,6 @@ const SDK_SRC = 'https://connect.facebook.net/en_US/sdk.js'
 const SDK_VERSION = 'v23.0'
 const MESSAGE_TYPE = 'WA_EMBEDDED_SIGNUP'
 
-/** Backstop so a popup that never reports back can't hang the UI forever. */
-const POPUP_TIMEOUT_MS = 120_000
-
 export const META_APP_ID = import.meta.env.VITE_META_APP_ID ?? ''
 export const META_CONFIG_ID = import.meta.env.VITE_META_CONFIG_ID ?? ''
 
@@ -68,9 +65,8 @@ const isFacebookOrigin = (origin) => {
 /**
  * Opens Meta's Embedded Signup popup.
  *
- * Resolves with `{ code, businessId, wabaId, phoneNumberId }` once the owner
- * completes the flow, and rejects if they cancel, dismiss the popup, or the
- * flow errors.
+ * Resolves with `{ code, wabaId, phoneNumberId }` once the owner completes the
+ * flow, and rejects if they cancel or the flow errors.
  */
 export function launchWhatsAppSignup() {
   if (!isWhatsAppConfigured()) {
@@ -82,17 +78,10 @@ export function launchWhatsAppSignup() {
   return loadFacebookSdk().then(
     (FB) =>
       new Promise((resolve, reject) => {
-        const session = { code: null, businessId: null, wabaId: null, phoneNumberId: null }
+        const session = { code: null, wabaId: null, phoneNumberId: null }
         let settled = false
 
-        const timer = window.setTimeout(
-          () => fail('WhatsApp signup timed out. Please try again.'),
-          POPUP_TIMEOUT_MS,
-        )
-        const cleanup = () => {
-          window.clearTimeout(timer)
-          window.removeEventListener('message', onMessage)
-        }
+        const cleanup = () => window.removeEventListener('message', onMessage)
         const succeed = () => {
           if (settled) return
           settled = true
@@ -106,14 +95,7 @@ export function launchWhatsAppSignup() {
           reject(new Error(message))
         }
 
-        // The code arrives via the FB.login callback and the identifiers via
-        // the WA_EMBEDDED_SIGNUP message event, in either order. Resolve only
-        // once both sources have landed.
-        const maybeSucceed = () => {
-          if (session.code && session.businessId && session.wabaId && session.phoneNumberId) succeed()
-        }
-
-        // Meta posts the business / WABA / phone number ids here on completion.
+        // Meta posts the WABA / phone number ids here once signup completes.
         function onMessage(event) {
           if (!isFacebookOrigin(event.origin) || typeof event.data !== 'string') return
 
@@ -126,10 +108,11 @@ export function launchWhatsAppSignup() {
           if (payload.type !== MESSAGE_TYPE) return
 
           if (payload.event === 'FINISH') {
-            session.businessId = payload.data?.business_id ?? null
             session.wabaId = payload.data?.waba_id ?? null
             session.phoneNumberId = payload.data?.phone_number_id ?? null
-            maybeSucceed()
+            // The login callback carries the exchangeable code; resolve now if
+            // it has already landed, otherwise let it settle the promise.
+            if (session.code) succeed()
           } else if (payload.event === 'CANCEL') {
             fail('WhatsApp connection was cancelled.')
           } else if (payload.event === 'ERROR') {
@@ -141,20 +124,11 @@ export function launchWhatsAppSignup() {
 
         FB.login(
           (response) => {
-            // Debug with booleans only — the raw response carries tokens/codes.
-            const hasCode = Boolean(response?.authResponse?.code)
-            const hasAccessToken = Boolean(response?.authResponse?.accessToken)
-            const hasSignedRequest = Boolean(response?.authResponse?.signedRequest)
-            console.debug('WA Embedded Signup response', { hasCode, hasAccessToken, hasSignedRequest })
-
-            if (hasCode) {
-              // Meta's documented source for the exchangeable code is the login
-              // response (response.authResponse.code) — not signedRequest and
-              // not the WA_EMBEDDED_SIGNUP message payload.
+            console.log('META FB.login RESPONSE:', response)
+            if (response.authResponse?.code) {
               session.code = response.authResponse.code
-              maybeSucceed()
+              succeed()
             } else {
-              // The popup closed without a code — cancelled or dismissed.
               fail('WhatsApp connection was cancelled.')
             }
           },
