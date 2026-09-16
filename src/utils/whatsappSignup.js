@@ -115,7 +115,12 @@ export function launchWhatsAppSignup() {
 
         // Meta posts the business / WABA / phone number ids here on completion.
         function onMessage(event) {
-          if (!isFacebookOrigin(event.origin) || typeof event.data !== 'string') return
+          if (!isFacebookOrigin(event.origin)) return
+          if (typeof event.data !== 'string') {
+            // Debug: Meta posted a non-string payload — expected a JSON string.
+            console.log('FB message dropped (non-string data)', { dataType: typeof event.data })
+            return
+          }
 
           let payload
           try {
@@ -182,7 +187,10 @@ export function launchWhatsAppSignup() {
             config_id: META_CONFIG_ID,
             response_type: 'code',
             override_default_response_type: true,
-            extras: { setup: {} },
+            // sessionInfoVersion is required for Meta to post the
+            // WA_EMBEDDED_SIGNUP message — v2 session logging is opt-in, so
+            // without it the code arrives but the ids never do.
+            extras: { setup: {}, sessionInfoVersion: '3' },
           },
         )
       }),
