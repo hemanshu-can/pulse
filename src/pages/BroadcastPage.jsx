@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   Box, Button, Chip, FormControl, InputLabel, MenuItem, Paper, Select, Stack,
   TextareaAutosize, Typography,
@@ -15,6 +15,7 @@ import CheckCircleOutlineRounded from '@mui/icons-material/CheckCircleOutlineRou
 import { makeOwners } from '../data/owners.js'
 import { useNotice } from '../state/notice.jsx'
 import { launchWhatsAppSignup } from '../utils/whatsappSignup.js'
+import { completeEmbeddedSignup } from '../api/whatsapp.js'
 import { SORA } from '../theme.js'
 
 const DRAFT =
@@ -37,19 +38,28 @@ export default function BroadcastPage() {
   const [body, setBody] = useState(DRAFT)
   const [waAccount, setWaAccount] = useState(null)
   const [connecting, setConnecting] = useState(false)
+  const submittingRef = useRef(false)
   const chars = body.length
 
   const toast = () => notify('Demo mode — broadcasts need the integration layer (WhatsApp / Email / SMS)', 'info')
 
   const connectWhatsApp = async () => {
+    // Guard against a second submit (StrictMode remount or impatient click) —
+    // a spent code would come back as a 400.
+    if (submittingRef.current) return
+    submittingRef.current = true
     setConnecting(true)
     try {
-      const { wabaId, phoneNumberId } = await launchWhatsAppSignup()
-      setWaAccount({ wabaId, phoneNumberId })
+      const { businessId, wabaId, phoneNumberId, code } = await launchWhatsAppSignup()
+      // Nothing runs between the popup closing and this call — the code is
+      // single-use and expires ~30s after the popup closes.
+      const account = await completeEmbeddedSignup({ businessId, wabaId, phoneNumberId, code })
+      setWaAccount(account)
       notify('WhatsApp Business connected', 'success')
     } catch (err) {
       notify(err.message ?? 'WhatsApp signup failed', 'error')
     } finally {
+      submittingRef.current = false
       setConnecting(false)
     }
   }
@@ -190,7 +200,9 @@ export default function BroadcastPage() {
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography fontSize={13.25} fontWeight={700} lineHeight={1.3}>{ch.label}</Typography>
                       <Typography fontSize={11.5} color="text.secondary" fontWeight={550} noWrap>
-                        {connected ? `Phone number ID ${waAccount.phoneNumberId ?? '—'}` : ch.note}
+                        {connected
+                          ? waAccount.phoneNumber || waAccount.displayName || `Number ID ${waAccount.phoneNumberId ?? '—'}`
+                          : ch.note}
                       </Typography>
                     </Box>
                     <Chip
