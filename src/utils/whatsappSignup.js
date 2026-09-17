@@ -206,7 +206,7 @@ export function launchWhatsAppSignup() {
             // sessionInfoVersion is required for Meta to post the
             // WA_EMBEDDED_SIGNUP message — v2 session logging is opt-in, so
             // without it the code arrives but the ids never do.
-            extras: { setup: {}, featureType: '', sessionInfoVersion: '3' },
+            extras: { setup: {}, featureType: 'whatsapp_business_app_onboarding', sessionInfoVersion: '3', version: 'v4' },
           },
         )
       }),
