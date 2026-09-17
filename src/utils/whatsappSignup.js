@@ -128,6 +128,12 @@ export function launchWhatsAppSignup() {
           try {
             payload = JSON.parse(event.data)
           } catch {
+            // Debug: a Facebook message that isn't JSON. Log only its shape —
+            // the raw string could carry an auth payload.
+            console.log('FB message (unparseable)', {
+              length: event.data.length,
+              mentionsEmbeddedSignup: event.data.includes(MESSAGE_TYPE),
+            })
             return
           }
           if (payload.type !== MESSAGE_TYPE) {
